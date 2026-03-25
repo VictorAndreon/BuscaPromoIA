@@ -31,7 +31,7 @@ class ProcessadorPDF:
 
     def _converter_para_imagens(self, pdf_bytes: bytes) -> list[Image.Image]:
         print("[conversao] Convertendo paginas do PDF em imagens...")
-        imagens = convert_from_bytes(pdf_bytes, dpi=150)
+        imagens = convert_from_bytes(pdf_bytes, dpi=250)
         print(f"[conversao] {len(imagens)} pagina(s) gerada(s)")
         return imagens
 
