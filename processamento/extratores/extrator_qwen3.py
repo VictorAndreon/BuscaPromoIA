@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import re
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -13,8 +14,8 @@ from coleta.modelos.promocao import Produto, Promocao
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODELO_QWEN3 = "qwen3-vl:8b"
-TIMEOUT_SEGUNDOS = 300
-LARGURA_MAXIMA_MODELO = 896
+TIMEOUT_SEGUNDOS = 600
+LARGURA_MAXIMA_MODELO = 1344
 
 PROMPT_EXTRACAO = """You are analyzing a Brazilian supermarket promotional flyer image.
 Extract every product promotion visible in the image.
@@ -22,11 +23,19 @@ Extract every product promotion visible in the image.
 Return ONLY a valid JSON array, no explanations, no markdown, no extra text.
 Use dot as decimal separator for prices (e.g. 4.99).
 
+Thinking rule: think once per product, then commit. Do not re-read, do not revise, do not second-guess. If uncertain about any field, use null or skip the product — never loop.
+
 Rules:
-- "validade_inicio" and "validade_fim": use the promotion period shown (e.g. "validas de 23/03 a 02/04/2025" -> inicio="23/03/2025", fim="02/04/2025"). Use null if not shown.
-- "preco_promocional" is required. If you cannot read the price clearly, skip the product entirely.
+- Copy text exactly as printed. Do not correct typos, do not question what you read, do not consider alternatives. Whatever is printed is correct.
+- Two products may look similar but have different names (e.g. "BIS" and "BISao") — read the name, do not guess from appearance.
+- Each product name must appear exactly once in the output. If you see the same name twice, it is the same product — do not duplicate it.
+- "preco_promocional" is required and must be copied exactly from the printed price. If the price is not clearly legible, skip the product entirely — do not estimate or infer.
 - "preco_original" is usually shown in small text above or crossed out near the promotional price. Look carefully for it.
-- "quantidade" and "unidade": look for small text near the product name (e.g. "500g", "1kg", "2L"). Use null if not shown.
+- "validade_inicio" and "validade_fim": use the promotion period shown (e.g. "validas de 23/03 a 02/04/2025" -> inicio="23/03/2025", fim="02/04/2025"). Use null if not shown.
+- Product names are printed in bold, large font. Additional details (weight, size, variety) appear in smaller, lighter font below or beside the name — these are part of the same product, not a separate field.
+- "nome": use only the main bold name (e.g. "Bombom Ferrero Rocher"). Do not include weight, size, or variety in the name.
+- "quantidade" and "unidade": extract from the small text near the name. If the text contains a number/float followed by a unit suffix (g, kg, L, ml, un), that is the quantity — for example "T8 | 100g" means quantidade=100, unidade="g". The "T8" part is a package count, not the quantity. Always prioritize explicit unit suffixes (g, kg, L, ml, un) over any other number near the product.
+- If multiple weights or sizes are listed for the same product at the same price (e.g. "87g, 90g, 92g ou 100g"), treat it as one product with quantidade=null and unidade=null. Do not create separate entries per size.
 - Do not invent or guess products. Only extract what is clearly visible.
 
 [
@@ -62,7 +71,6 @@ class ExtratorQwen3:
         texto_resposta = self._chamar_qwen3(imagem_base64)
         dados = self._parsear_resposta(texto_resposta)
         promocoes = self._converter_para_promocoes(dados, caminho_imagem.stem)
-        print(f"[extracao] Concluida: {len(promocoes)} promocao(es) encontrada(s)")
         return promocoes
 
     def salvar(self, promocoes: list[Promocao], nome_arquivo: str) -> Path:
@@ -100,12 +108,14 @@ class ExtratorQwen3:
             "stream": True,
             "options": {
                 "temperature": 0,
-                "num_predict": 8192,
+                "num_ctx": 32768,
+                "num_predict": -1,
                 "repeat_penalty": 1.3,
                 "repeat_last_n": 64,
             },
         }
         print(f"[qwen3] Enviando imagem para o modelo '{MODELO_QWEN3}' (timeout={TIMEOUT_SEGUNDOS}s)...")
+        inicio_chamada = time.time()
         print("[qwen3] Thinking: ", end="", flush=True)
         try:
             resposta = requests.post(OLLAMA_URL, json=payload, timeout=TIMEOUT_SEGUNDOS, stream=True)
@@ -130,6 +140,8 @@ class ExtratorQwen3:
 
         texto_completo = []
         em_thinking = True
+        tempo_primeiro_token = None
+        tokens_gerados = 0
         for linha in resposta.iter_lines():
             if linha:
                 chunk = json.loads(linha)
@@ -138,18 +150,26 @@ class ExtratorQwen3:
                 content = msg.get("content", "")
 
                 if thinking:
+                    if tempo_primeiro_token is None:
+                        tempo_primeiro_token = time.time()
                     print(f"{thinking}", end="", flush=True)
                 if content:
                     if em_thinking:
-                        print(f"\n[qwen3] Gerando resposta: ", end="", flush=True)
+                        duracao_thinking = time.time() - inicio_chamada
+                        print(f"\n[qwen3] Thinking concluido em {duracao_thinking:.1f}s | Gerando resposta: ", end="", flush=True)
                         em_thinking = False
                     print(content, end="", flush=True)
                     texto_completo.append(content)
 
                 if chunk.get("done"):
+                    tokens_gerados = chunk.get("eval_count", 0)
                     break
 
-        print(f"\n[qwen3] Resposta concluida ({sum(len(t) for t in texto_completo)} caracteres)")
+        duracao_total = time.time() - inicio_chamada
+        uso_percentual = round(tokens_gerados / 8192 * 100, 1)
+        print(f"\n[qwen3] Resposta concluida em {duracao_total:.1f}s")
+        print(f"[qwen3] Tokens gerados: {tokens_gerados} ({uso_percentual}% do limite)")
+        print(f"[qwen3] Caracteres no conteudo: {sum(len(t) for t in texto_completo)}")
         return "".join(texto_completo)
 
     def _parsear_resposta(self, texto: str) -> list[dict]:
