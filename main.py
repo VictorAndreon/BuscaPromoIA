@@ -18,6 +18,12 @@ processador.processar(coletor.coletar_encartes(), "encarte")
 
 extrator = ExtratorQwen3("stokcenter", periodo, localizacao="Petropolis")
 pasta_imagens = Path("dados") / "stokcenter" / "imagens" / periodo
+pasta_json = Path("dados") / "stokcenter" / "json" / periodo
+
 for imagem in sorted(pasta_imagens.glob("*.jpg")):
+    caminho_json = pasta_json / f"{imagem.stem}.json"
+    if caminho_json.exists():
+        print(f"[skip] {imagem.name} ja processado, pulando...")
+        continue
     promocoes = extrator.extrair(imagem)
     extrator.salvar(promocoes, imagem.stem)
