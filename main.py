@@ -6,6 +6,7 @@ from rich.traceback import install
 from coleta.scraper_base import ScraperBase
 from processamento.processador_pdf import ProcessadorPDF
 from processamento.extratores.extrator_qwen3 import ExtratorQwen3
+from processamento.consolidador_json import ConsolidadorJson
 
 install()
 
@@ -27,3 +28,6 @@ for imagem in sorted(pasta_imagens.glob("*.jpg")):
         continue
     promocoes = extrator.extrair(imagem)
     extrator.salvar(promocoes, imagem.stem)
+
+consolidador = ConsolidadorJson("stokcenter", periodo)
+consolidador.consolidar()
