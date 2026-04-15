@@ -23,7 +23,7 @@ pasta_json = Path("dados") / "stokcenter" / "json" / periodo
 for imagem in sorted(pasta_imagens.glob("*.jpg")):
     caminho_json = pasta_json / f"{imagem.stem}.json"
     if caminho_json.exists():
-        print(f"[skip] {imagem.name} ja processado, pulando...")
+        print(f"[skip] {imagem.name} já processado, pulando...")
         continue
     promocoes = extrator.extrair(imagem)
     extrator.salvar(promocoes, imagem.stem)
