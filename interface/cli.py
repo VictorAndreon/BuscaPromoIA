@@ -7,7 +7,7 @@ from interface.consultor import Consultor, ConsultorError
 
 COMANDOS_SAIR = {"sair", "exit", "quit", "q"}
 
-console = Console()
+console: Console = Console()
 
 
 def main() -> None:
