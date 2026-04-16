@@ -27,6 +27,7 @@ def _carregar_json_existente(caminho_json: Path) -> list[Promocao]:
             preco_promocional=item["preco_promocional"],
             preco_original=item.get("preco_original"),
             desconto_percentual=item.get("desconto_percentual"),
+            quantidade_minima=item.get("quantidade_minima"),
             validade_inicio=item.get("validade_inicio"),
             validade_fim=item.get("validade_fim"),
             mercado=item["mercado"],

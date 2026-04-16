@@ -22,3 +22,4 @@ class Promocao:
     localizacao: Optional[str]
     periodo: str
     pagina_origem: str
+    quantidade_minima: Optional[int] = None

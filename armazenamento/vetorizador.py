@@ -81,7 +81,10 @@ class Vetorizador:
         partes = [f"Produto: {nome}", f"Categoria: {categoria}"]
         if quantidade is not None and unidade:
             partes.append(f"Quantidade: {quantidade} {unidade}")
+        quantidade_minima = promocao.get("quantidade_minima")
         partes.append(f"Preço: R${preco}")
+        if quantidade_minima is not None:
+            partes.append(f"Condição: leve {quantidade_minima} unidades")
         if desconto is not None:
             partes.append(f"Desconto: {desconto}%")
         partes.append(f"Mercado: {mercado}")
@@ -108,6 +111,7 @@ class Vetorizador:
             "preco_promocional": promocao.get("preco_promocional"),
             "preco_original": promocao.get("preco_original"),
             "desconto_percentual": promocao.get("desconto_percentual"),
+            "quantidade_minima": promocao.get("quantidade_minima"),
             "pagina_origem": promocao.get("pagina_origem", ""),
             "validade_fim": promocao.get("validade_fim"),
         }

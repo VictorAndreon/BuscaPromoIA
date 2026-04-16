@@ -31,6 +31,7 @@ Rules:
 - Each product name must appear exactly once in the output. If you see the same name twice, it is the same product — do not duplicate it.
 - "preco_promocional" is required and must be copied exactly from the printed price. If the price is not clearly legible, skip the product entirely — do not estimate or infer.
 - "preco_original" is usually shown in small text above or crossed out near the promotional price. Look carefully for it.
+- "quantidade_minima": for promotions that require buying multiple units to get the deal (e.g. "leve 2 pague 11.99 cada", "compre 3 por X cada"), set this to the minimum quantity required (e.g. 2 or 3). In these cases, "preco_promocional" is the per-unit price under the deal condition. If there is no minimum quantity requirement, set to null.
 - "validade_inicio" and "validade_fim": use the promotion period shown (e.g. "validas de 23/03 a 02/04/2025" -> inicio="23/03/2025", fim="02/04/2025"). Use null if not shown.
 - Product names are printed in bold, large font. Additional details (weight, size, variety) appear in smaller, lighter font below or beside the name — these are part of the same product, not a separate field.
 - "nome": use only the main bold name (e.g. "Bombom Ferrero Rocher"). Do not include weight, size, or variety in the name.
@@ -44,9 +45,10 @@ Rules:
     "categoria": "one of: laticinios, bebidas, carnes, hortigranjeiro, higiene, limpeza, mercearia, outros",
     "quantidade": null or number,
     "unidade": null or "kg" or "L" or "un" or "g" or "ml",
-    "preco_promocional": number with dot decimal (required),
+    "preco_promocional": number with dot decimal (required, always per unit),
     "preco_original": null or number,
     "desconto_percentual": null or number,
+    "quantidade_minima": null or integer,
     "validade_inicio": null or "DD/MM/YYYY",
     "validade_fim": null or "DD/MM/YYYY"
   }
@@ -223,6 +225,7 @@ class ExtratorQwen3:
                 preco_promocional=preco_promocional,
                 preco_original=preco_original,
                 desconto_percentual=desconto,
+                quantidade_minima=item.get("quantidade_minima"),
                 validade_inicio=item.get("validade_inicio"),
                 validade_fim=item.get("validade_fim"),
                 mercado=self._mercado,
@@ -250,6 +253,7 @@ class ExtratorQwen3:
             "preco_promocional": promocao.preco_promocional,
             "preco_original": promocao.preco_original,
             "desconto_percentual": promocao.desconto_percentual,
+            "quantidade_minima": promocao.quantidade_minima,
             "validade_inicio": promocao.validade_inicio,
             "validade_fim": promocao.validade_fim,
             "mercado": promocao.mercado,
