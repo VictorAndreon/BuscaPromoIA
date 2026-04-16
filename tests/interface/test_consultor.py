@@ -62,13 +62,14 @@ def consultor_sem_dados(cliente_vazio):
 
 
 def test_consultor_instancia_sem_erro(cliente_vazio):
-    """Consultor deve ser instanciado sem erros com dependências injetadas."""
+    """Consultor deve armazenar as dependências injetadas no construtor."""
     consultor = Consultor(
         _gerar_embedding=_embedding_falso,
         _chamar_llm=_llm_falso,
         _client=cliente_vazio,
     )
-    assert consultor is not None
+    assert consultor._gerar_embedding is _embedding_falso
+    assert consultor._chamar_llm is _llm_falso
 
 
 def test_buscar_promocoes_retorna_lista(cliente_com_dados):

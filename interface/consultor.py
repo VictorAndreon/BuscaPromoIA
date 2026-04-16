@@ -88,6 +88,11 @@ class Consultor:
                 f"Não foi possível conectar ao Ollama em {OLLAMA_URL_EMBEDDINGS}. "
                 "Verifique se o Ollama está rodando com 'ollama pull nomic-embed-text'."
             )
+        except requests.exceptions.Timeout:
+            raise ConsultorError(
+                f"Timeout ao aguardar resposta do Ollama em {OLLAMA_URL_EMBEDDINGS}. "
+                "Verifique se o modelo está carregado."
+            )
         except requests.exceptions.HTTPError as erro:
             raise ConsultorError(f"Erro HTTP ao chamar Ollama embeddings: {erro}")
         return resposta.json()["embedding"]
@@ -106,6 +111,11 @@ class Consultor:
             raise ConsultorError(
                 f"Não foi possível conectar ao Ollama em {OLLAMA_URL_GENERATE}. "
                 f"Verifique se o Ollama está rodando com 'ollama pull {self._modelo_llm}'."
+            )
+        except requests.exceptions.Timeout:
+            raise ConsultorError(
+                f"Timeout ao aguardar resposta do Ollama em {OLLAMA_URL_GENERATE}. "
+                f"Verifique se o modelo '{self._modelo_llm}' está carregado."
             )
         except requests.exceptions.HTTPError as erro:
             raise ConsultorError(f"Erro HTTP ao chamar Ollama generate: {erro}")
