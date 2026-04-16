@@ -153,3 +153,9 @@ def test_consultar_colecao_vazia_passa_mensagem_ao_llm(cliente_vazio):
     )
     consultor.consultar("arroz")
     assert "Nenhuma promoção encontrada" in sistemas_capturados[0]
+
+
+def test_cli_modulo_importavel():
+    """interface.cli deve ser importável e expor a função main."""
+    from interface import cli
+    assert callable(cli.main)
