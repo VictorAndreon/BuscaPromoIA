@@ -48,19 +48,25 @@ class Consultor:
         )
 
     def consultar(self, pergunta: str) -> str:
+        # implementado na Task 3
         raise NotImplementedError
 
     def _buscar_promocoes(self, pergunta: str) -> list[dict]:
+        # implementado na Task 2
         raise NotImplementedError
 
     def _formatar_contexto(self, resultados: list[dict]) -> str:
+        # implementado na Task 2
         raise NotImplementedError
 
     def _gerar_resposta(self, pergunta: str, contexto: str) -> str:
+        # implementado na Task 3
         raise NotImplementedError
 
     def _embedding_ollama(self, texto: str) -> list[float]:
+        # implementado na Task 3
         raise NotImplementedError
 
     def _llm_ollama(self, sistema: str, pergunta: str) -> str:
+        # implementado na Task 3
         raise NotImplementedError
