@@ -33,3 +33,6 @@ convencoes.txt
 
 # Arquivo de imagens
 dados/
+
+# Git worktrees
+.worktrees/
