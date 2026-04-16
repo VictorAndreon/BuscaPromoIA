@@ -1,8 +1,8 @@
-import requests
 from pathlib import Path
 from typing import Callable, Optional
 
 import chromadb
+import requests
 
 
 OLLAMA_URL_EMBEDDINGS = "http://localhost:11434/api/embeddings"
@@ -35,7 +35,7 @@ class Consultor:
         top_k: int = TOP_K_PADRAO,
         _gerar_embedding: Optional[Callable[[str], list[float]]] = None,
         _chamar_llm: Optional[Callable[[str, str], str]] = None,
-        _client=None,
+        _client: Optional[chromadb.ClientAPI] = None,
     ) -> None:
         self._modelo_llm = modelo_llm
         self._top_k = top_k

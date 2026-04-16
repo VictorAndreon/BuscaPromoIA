@@ -1,7 +1,7 @@
 import chromadb
 import pytest
 
-from interface.consultor import Consultor
+from interface.consultor import Consultor, ConsultorError
 
 
 EMBEDDING_FALSO = [0.1] * 768
@@ -159,3 +159,41 @@ def test_cli_modulo_importavel():
     """interface.cli deve ser importável e expor a função main."""
     from interface import cli
     assert callable(cli.main)
+
+
+def test_embedding_ollama_connection_error(monkeypatch):
+    """_embedding_ollama deve lançar ConsultorError em ConnectionError."""
+    import requests as req
+
+    def mock_post(*args, **kwargs):
+        raise req.exceptions.ConnectionError()
+
+    monkeypatch.setattr(req, "post", mock_post)
+    client = chromadb.EphemeralClient()
+    client.get_or_create_collection("promocoes", metadata={"hnsw:space": "cosine"})
+    consultor = Consultor(
+        _gerar_embedding=None,
+        _chamar_llm=_llm_falso,
+        _client=client,
+    )
+    with pytest.raises(ConsultorError, match="Ollama"):
+        consultor._embedding_ollama("teste")
+
+
+def test_llm_ollama_connection_error(monkeypatch):
+    """_llm_ollama deve lançar ConsultorError em ConnectionError."""
+    import requests as req
+
+    def mock_post(*args, **kwargs):
+        raise req.exceptions.ConnectionError()
+
+    monkeypatch.setattr(req, "post", mock_post)
+    client = chromadb.EphemeralClient()
+    client.get_or_create_collection("promocoes", metadata={"hnsw:space": "cosine"})
+    consultor = Consultor(
+        _gerar_embedding=_embedding_falso,
+        _chamar_llm=None,
+        _client=client,
+    )
+    with pytest.raises(ConsultorError, match="Ollama"):
+        consultor._llm_ollama("sistema", "pergunta")
