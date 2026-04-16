@@ -7,6 +7,7 @@ from coleta.scraper_base import ScraperBase
 from processamento.processador_pdf import ProcessadorPDF
 from processamento.extratores.extrator_qwen3 import ExtratorQwen3
 from processamento.consolidador_json import ConsolidadorJson
+from armazenamento.vetorizador import Vetorizador
 
 install()
 
@@ -30,4 +31,7 @@ for imagem in sorted(pasta_imagens.glob("*.jpg")):
     extrator.salvar(promocoes, imagem.stem)
 
 consolidador = ConsolidadorJson("stokcenter", periodo)
-consolidador.consolidar()
+caminho_consolidado = consolidador.consolidar()
+
+vetorizador = Vetorizador("stokcenter", periodo)
+vetorizador.vetorizar(caminho_consolidado)
