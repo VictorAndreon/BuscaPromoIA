@@ -48,8 +48,9 @@ class Consultor:
         )
 
     def consultar(self, pergunta: str) -> str:
-        # implementado na Task 3
-        raise NotImplementedError
+        resultados = self._buscar_promocoes(pergunta)
+        contexto = self._formatar_contexto(resultados)
+        return self._gerar_resposta(pergunta, contexto)
 
     def _buscar_promocoes(self, pergunta: str) -> list[dict]:
         count = self._colecao.count()
@@ -74,13 +75,38 @@ class Consultor:
         return "\n".join(linhas)
 
     def _gerar_resposta(self, pergunta: str, contexto: str) -> str:
-        # implementado na Task 3
-        raise NotImplementedError
+        sistema = PROMPT_SISTEMA.format(contexto=contexto)
+        return self._chamar_llm(sistema, pergunta)
 
     def _embedding_ollama(self, texto: str) -> list[float]:
-        # implementado na Task 3
-        raise NotImplementedError
+        payload = {"model": MODELO_EMBEDDING, "prompt": texto}
+        try:
+            resposta = requests.post(OLLAMA_URL_EMBEDDINGS, json=payload, timeout=TIMEOUT_EMBEDDING)
+            resposta.raise_for_status()
+        except requests.exceptions.ConnectionError:
+            raise ConsultorError(
+                f"Não foi possível conectar ao Ollama em {OLLAMA_URL_EMBEDDINGS}. "
+                "Verifique se o Ollama está rodando com 'ollama pull nomic-embed-text'."
+            )
+        except requests.exceptions.HTTPError as erro:
+            raise ConsultorError(f"Erro HTTP ao chamar Ollama embeddings: {erro}")
+        return resposta.json()["embedding"]
 
     def _llm_ollama(self, sistema: str, pergunta: str) -> str:
-        # implementado na Task 3
-        raise NotImplementedError
+        payload = {
+            "model": self._modelo_llm,
+            "system": sistema,
+            "prompt": pergunta,
+            "stream": False,
+        }
+        try:
+            resposta = requests.post(OLLAMA_URL_GENERATE, json=payload, timeout=TIMEOUT_LLM)
+            resposta.raise_for_status()
+        except requests.exceptions.ConnectionError:
+            raise ConsultorError(
+                f"Não foi possível conectar ao Ollama em {OLLAMA_URL_GENERATE}. "
+                f"Verifique se o Ollama está rodando com 'ollama pull {self._modelo_llm}'."
+            )
+        except requests.exceptions.HTTPError as erro:
+            raise ConsultorError(f"Erro HTTP ao chamar Ollama generate: {erro}")
+        return resposta.json()["response"]

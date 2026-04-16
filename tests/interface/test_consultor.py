@@ -105,3 +105,50 @@ def test_formatar_contexto_lista_vazia(consultor_sem_dados):
     """_formatar_contexto com lista vazia deve informar ausência de promoções."""
     contexto = consultor_sem_dados._formatar_contexto([])
     assert "Nenhuma promoção encontrada" in contexto
+
+
+def test_gerar_resposta_delega_ao_llm(consultor_sem_dados):
+    """_gerar_resposta deve passar sistema formatado e a pergunta original ao _chamar_llm."""
+    chamadas: list[dict] = []
+
+    def _llm_captura(sistema: str, pergunta: str) -> str:
+        chamadas.append({"sistema": sistema, "pergunta": pergunta})
+        return "resposta capturada"
+
+    consultor_sem_dados._chamar_llm = _llm_captura
+
+    contexto = "1. Produto: Arroz | Preço: R$22.9"
+    resposta = consultor_sem_dados._gerar_resposta("arroz barato?", contexto)
+
+    assert resposta == "resposta capturada"
+    assert len(chamadas) == 1
+    assert chamadas[0]["pergunta"] == "arroz barato?"
+    assert "1. Produto: Arroz" in chamadas[0]["sistema"]
+
+
+def test_consultar_retorna_resposta_llm(cliente_com_dados):
+    """consultar() deve retornar a string gerada pelo LLM."""
+    consultor = Consultor(
+        _gerar_embedding=_embedding_falso,
+        _chamar_llm=_llm_falso,
+        _client=cliente_com_dados,
+    )
+    resposta = consultor.consultar("qual o menor preço de arroz?")
+    assert "qual o menor preço de arroz?" in resposta
+
+
+def test_consultar_colecao_vazia_passa_mensagem_ao_llm(cliente_vazio):
+    """consultar() com coleção vazia deve enviar 'Nenhuma promoção encontrada' ao LLM."""
+    sistemas_capturados: list[str] = []
+
+    def _llm_captura(sistema: str, pergunta: str) -> str:
+        sistemas_capturados.append(sistema)
+        return "sem promoções relevantes"
+
+    consultor = Consultor(
+        _gerar_embedding=_embedding_falso,
+        _chamar_llm=_llm_captura,
+        _client=cliente_vazio,
+    )
+    consultor.consultar("arroz")
+    assert "Nenhuma promoção encontrada" in sistemas_capturados[0]
