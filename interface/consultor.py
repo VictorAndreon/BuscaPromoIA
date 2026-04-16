@@ -52,12 +52,26 @@ class Consultor:
         raise NotImplementedError
 
     def _buscar_promocoes(self, pergunta: str) -> list[dict]:
-        # implementado na Task 2
-        raise NotImplementedError
+        count = self._colecao.count()
+        if count == 0:
+            return []
+        embedding = self._gerar_embedding(pergunta)
+        resultados = self._colecao.query(
+            query_embeddings=[embedding],
+            n_results=min(self._top_k, count),
+        )
+        documentos = resultados["documents"][0]
+        metadados = resultados["metadatas"][0]
+        return [
+            {"documento": doc, "metadados": meta}
+            for doc, meta in zip(documentos, metadados)
+        ]
 
     def _formatar_contexto(self, resultados: list[dict]) -> str:
-        # implementado na Task 2
-        raise NotImplementedError
+        if not resultados:
+            return "Nenhuma promoção encontrada."
+        linhas = [f"{i + 1}. {r['documento']}" for i, r in enumerate(resultados)]
+        return "\n".join(linhas)
 
     def _gerar_resposta(self, pergunta: str, contexto: str) -> str:
         # implementado na Task 3

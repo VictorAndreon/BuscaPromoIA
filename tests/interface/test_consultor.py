@@ -15,18 +15,26 @@ def _llm_falso(sistema: str, pergunta: str) -> str:
     return f"Resposta para: {pergunta}"
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def cliente_vazio():
     """ChromaDB em memória com coleção 'promocoes' criada mas sem documentos."""
     cliente = chromadb.EphemeralClient()
+    try:
+        cliente.delete_collection("promocoes")
+    except Exception:
+        pass
     cliente.get_or_create_collection("promocoes", metadata={"hnsw:space": "cosine"})
     return cliente
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def cliente_com_dados():
     """ChromaDB em memória com 2 promoções pré-indexadas."""
     cliente = chromadb.EphemeralClient()
+    try:
+        cliente.delete_collection("promocoes")
+    except Exception:
+        pass
     colecao = cliente.get_or_create_collection("promocoes", metadata={"hnsw:space": "cosine"})
     colecao.add(
         ids=["id1", "id2"],
@@ -61,3 +69,39 @@ def test_consultor_instancia_sem_erro(cliente_vazio):
         _client=cliente_vazio,
     )
     assert consultor is not None
+
+
+def test_buscar_promocoes_retorna_lista(cliente_com_dados):
+    """_buscar_promocoes deve retornar lista de dicts com 'documento' e 'metadados'."""
+    consultor = Consultor(
+        _gerar_embedding=_embedding_falso,
+        _chamar_llm=_llm_falso,
+        _client=cliente_com_dados,
+    )
+    resultados = consultor._buscar_promocoes("qual o preço do arroz?")
+    assert len(resultados) == 2
+    assert "documento" in resultados[0]
+    assert "metadados" in resultados[0]
+
+
+def test_buscar_promocoes_colecao_vazia(consultor_sem_dados):
+    """_buscar_promocoes com coleção vazia deve retornar lista vazia sem lançar erro."""
+    resultados = consultor_sem_dados._buscar_promocoes("arroz")
+    assert resultados == []
+
+
+def test_formatar_contexto_numera_resultados(consultor_sem_dados):
+    """_formatar_contexto deve numerar cada promoção no texto de contexto."""
+    resultados = [
+        {"documento": "Produto: Arroz | Preço: R$22.9", "metadados": {}},
+        {"documento": "Produto: Leite | Preço: R$4.99", "metadados": {}},
+    ]
+    contexto = consultor_sem_dados._formatar_contexto(resultados)
+    assert "1. Produto: Arroz" in contexto
+    assert "2. Produto: Leite" in contexto
+
+
+def test_formatar_contexto_lista_vazia(consultor_sem_dados):
+    """_formatar_contexto com lista vazia deve informar ausência de promoções."""
+    contexto = consultor_sem_dados._formatar_contexto([])
+    assert "Nenhuma promoção encontrada" in contexto
